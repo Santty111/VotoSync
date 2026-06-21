@@ -1,12 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Backend endpoints (mapped to local Spring Boot ports / K8s ingress / production URLs)
-const API_URLS = {
-  identity: import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:8081',
-  election: import.meta.env.VITE_ELECTION_SERVICE_URL || 'http://localhost:8082',
-  vote: import.meta.env.VITE_VOTE_SERVICE_URL || 'http://localhost:8083',
-  audit: import.meta.env.VITE_AUDIT_SERVICE_URL || 'http://localhost:8084',
+// Resolve backend endpoints dynamically. Supports localhost, custom Env vars, and automatic GitHub Codespaces port mapping.
+const getBackendUrls = () => {
+  const defaultUrls = {
+    identity: import.meta.env.VITE_IDENTITY_SERVICE_URL || 'http://localhost:8081',
+    election: import.meta.env.VITE_ELECTION_SERVICE_URL || 'http://localhost:8082',
+    vote: import.meta.env.VITE_VOTE_SERVICE_URL || 'http://localhost:8083',
+    audit: import.meta.env.VITE_AUDIT_SERVICE_URL || 'http://localhost:8084',
+  };
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // Handle GitHub Codespaces URL mapping dynamically
+    if (hostname.includes('.github.dev') || hostname.includes('.app.github.dev')) {
+      const match = hostname.match(/^(.+?)-3000\.(.+)$/);
+      if (match) {
+        const codespaceId = match[1];
+        const domain = match[2];
+        return {
+          identity: `https://${codespaceId}-8081.${domain}`,
+          election: `https://${codespaceId}-8082.${domain}`,
+          vote: `https://${codespaceId}-8083.${domain}`,
+          audit: `https://${codespaceId}-8084.${domain}`,
+        };
+      }
+    }
+  }
+  return defaultUrls;
 };
+
+const API_URLS = getBackendUrls();
 
 export default function App() {
   // Authentication & Session States
