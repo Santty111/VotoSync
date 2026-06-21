@@ -45,6 +45,7 @@ services:
       done;
       echo 'Master is ready. Starting basebackup...';
       pg_basebackup -h postgres-master -D /var/lib/postgresql/data -U replicator -P -v -R -Fp -w &&
+      chown -R postgres:postgres /var/lib/postgresql/data &&
       echo 'Basebackup finished. Starting standby server...';
       exec su-exec postgres postgres
       "
