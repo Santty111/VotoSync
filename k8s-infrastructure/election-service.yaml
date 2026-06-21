@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: election-service
+  labels:
+    app: election-service
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app: election-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: election-service
+  labels:
+    app: election-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: election-service
+  template:
+    metadata:
+      labels:
+        app: election-service
+    spec:
+      containers:
+        - name: election-service
+          image: votosync-election-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: DB_HOST
+              value: "postgres-master"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "postgres"
+            - name: DB_PASSWORD
+              value: "postgres"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 20

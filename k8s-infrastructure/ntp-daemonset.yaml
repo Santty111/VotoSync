@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ntp-sync-daemonset
+  namespace: kube-system
+  labels:
+    app: ntp-sync
+spec:
+  selector:
+    matchLabels:
+      name: ntp-sync
+  template:
+    metadata:
+      labels:
+        name: ntp-sync
+    spec:
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+        # Enforce running on control plane / master nodes as well
+        - operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: chrony
+          image: alpine:3.18
+          command:
+            - "sh"
+            - "-c"
+            - |
+              echo "Installing chrony..."
+              apk add --no-cache chrony
+              
+              echo "Configuring chrony parameters..."
+              cat <<EOF > /etc/chrony/chrony.conf
+              pool pool.ntp.org iburst
+              driftfile /var/lib/chrony/chrony.drift
+              makestep 1.0 3
+              rtcsync
+              EOF
+
+              echo "Starting chronyd daemon in privileged mode to synchronize host clocks..."
+              # Run chronyd in foreground and keep sync logs
+              exec chronyd -d -s
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_TIME # Crucial capability to adjust host hardware/system clock
+          resources:
+            limits:
+              cpu: 50m
+              memory: 64Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          volumeMounts:
+            - name: host-time
+              mountPath: /etc/localtime
+              readOnly: true
+      volumes:
+        - name: host-time
+          hostPath:
+            path: /etc/localtime

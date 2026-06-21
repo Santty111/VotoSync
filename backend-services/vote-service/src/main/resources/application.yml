@@ -1,0 +1,29 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: vote-service
+  datasource:
+    url: jdbc:postgresql://${DB_MASTER_HOST:localhost}:${DB_PORT:5432}/votosync
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+services:
+  identity:
+    url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+  election:
+    url: ${ELECTION_SERVICE_URL:http://localhost:8082}

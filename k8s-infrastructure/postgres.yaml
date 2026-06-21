@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-master
+  labels:
+    app: postgres-master
+spec:
+  ports:
+    - port: 5432
+      name: db
+  selector:
+    app: postgres-master
+  clusterIP: None # Headless service for stateful identity
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-master
+spec:
+  serviceName: "postgres-master"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-master
+  template:
+    metadata:
+      labels:
+        app: postgres-master
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          command:
+            - "postgres"
+            - "-c"
+            - "wal_level=replica"
+            - "-c"
+            - "max_wal_senders=10"
+            - "-c"
+            - "max_replication_slots=10"
+            - "-c"
+            - "hot_standby=on"
+          ports:
+            - containerPort: 5432
+              name: db
+          env:
+            - name: POSTGRES_DB
+              value: "votosync"
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "postgres"
+          volumeMounts:
+            - name: pg-init-script
+              mountPath: /docker-entrypoint-initdb.d/
+            - name: pg-master-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pg-init-script
+          configMap:
+            name: db-init-config
+  volumeClaimTemplates:
+    - metadata:
+        name: pg-master-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-slave
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: postgres-slave
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-slave
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-slave
+  template:
+    metadata:
+      labels:
+        app: postgres-slave
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          command:
+            - "sh"
+            - "-c"
+            - |
+              rm -rf /var/lib/postgresql/data/* &&
+              until pg_isready -h postgres-master-0.postgres-master -p 5432 -U postgres; do
+                echo 'Waiting for Master...';
+                sleep 2;
+              done;
+              pg_basebackup -h postgres-master-0.postgres-master -D /var/lib/postgresql/data -U replicator -P -v -R -Fp -w &&
+              exec postgres
+          env:
+            - name: PGPASSWORD
+              value: "replicator_password"
+          ports:
+            - containerPort: 5432

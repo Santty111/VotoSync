@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Master Node (Write Operations)
+  postgres-master:
+    image: postgres:15-alpine
+    container_name: votosync-db-master
+    environment:
+      POSTGRES_DB: votosync
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      postgres 
+      -c wal_level=replica 
+      -c max_wal_senders=10 
+      -c max_replication_slots=10 
+      -c hot_standby=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. PostgreSQL Slave Node (Read Operations / Replica)
+  postgres-slave:
+    image: postgres:15-alpine
+    container_name: votosync-db-slave
+    environment:
+      PGPASSWORD: replicator_password
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    command: >
+      sh -c "
+      rm -rf /var/lib/postgresql/data/* &&
+      until pg_isready -h postgres-master -p 5432 -U postgres; do
+        echo 'Waiting for Master PostgreSQL to be ready...';
+        sleep 2;
+      done;
+      echo 'Master is ready. Starting basebackup...';
+      pg_basebackup -h postgres-master -D /var/lib/postgresql/data -U replicator -P -v -R -Fp -w &&
+      echo 'Basebackup finished. Starting standby server...';
+      exec su-exec postgres postgres
+      "
+
+  # 3. RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: votosync-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 4. Identity Service
+  identity-service:
+    build:
+      context: ./backend-services
+      dockerfile: identity-service/Dockerfile
+    container_name: votosync-identity-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: postgres-master
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+
+  # 5. Election Service
+  election-service:
+    build:
+      context: ./backend-services
+      dockerfile: election-service/Dockerfile
+    container_name: votosync-election-service
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: postgres-master
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+
+  # 6. Vote Service (Writes to Master DB, publishes to RabbitMQ)
+  vote-service:
+    build:
+      context: ./backend-services
+      dockerfile: vote-service/Dockerfile
+    container_name: votosync-vote-service
+    ports:
+      - "8083:8083"
+    environment:
+      DB_MASTER_HOST: postgres-master
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      ELECTION_SERVICE_URL: http://election-service:8082
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      election-service:
+        condition: service_started
+
+  # 7. Audit Service (Reads from Slave DB / Replica)
+  audit-service:
+    build:
+      context: ./backend-services
+      dockerfile: audit-service/Dockerfile
+    container_name: votosync-audit-service
+    ports:
+      - "8084:8084"
+    environment:
+      DB_SLAVE_HOST: postgres-slave
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      postgres-slave:
+        condition: service_started
+
+  # 8. Frontend React Client Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: votosync-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - identity-service
+      - election-service
+      - vote-service
+      - audit-service

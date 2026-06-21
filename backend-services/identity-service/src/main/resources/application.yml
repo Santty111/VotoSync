@@ -1,0 +1,23 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/votosync
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  # Base64 encoded 256-bit key for HMAC-SHA256: "votosync_secure_distributed_voting_platform_secret_key_2026_base64" (base64 encoded)
+  secret: dm90b3N5bmNfc2VjdXJlX2Rpc3RyaWJ1dGVkX3ZvdGluZ19wbGF0Zm9ybV9zZWNyZXRfa2V5XzIwMjZfYmFzZTY0
+  expiration: 86400000 # 24 hours in milliseconds
