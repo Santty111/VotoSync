@@ -11,19 +11,15 @@ const getBackendUrls = () => {
 
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Handle GitHub Codespaces URL mapping dynamically
+    // Handle GitHub Codespaces URL mapping dynamically via Nginx reverse proxy
     if (hostname.includes('.github.dev') || hostname.includes('.app.github.dev')) {
-      const match = hostname.match(/^(.+?)-3000\.(.+)$/);
-      if (match) {
-        const codespaceId = match[1];
-        const domain = match[2];
-        return {
-          identity: `https://${codespaceId}-8081.${domain}`,
-          election: `https://${codespaceId}-8082.${domain}`,
-          vote: `https://${codespaceId}-8083.${domain}`,
-          audit: `https://${codespaceId}-8084.${domain}`,
-        };
-      }
+      const origin = window.location.origin;
+      return {
+        identity: origin,
+        election: origin,
+        vote: origin,
+        audit: origin,
+      };
     }
   }
   return defaultUrls;

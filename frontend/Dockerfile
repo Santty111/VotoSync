@@ -17,6 +17,18 @@ RUN echo 'server { \
         index index.html index.htm; \
         try_files $uri $uri/ /index.html; \
     } \
+    location /api/auth { \
+        proxy_pass http://identity-service:8081; \
+    } \
+    location /api/elections { \
+        proxy_pass http://election-service:8082; \
+    } \
+    location /api/votes { \
+        proxy_pass http://vote-service:8083; \
+    } \
+    location /api/audit { \
+        proxy_pass http://audit-service:8084; \
+    } \
 }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
