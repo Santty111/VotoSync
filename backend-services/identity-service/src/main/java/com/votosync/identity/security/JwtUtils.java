@@ -62,9 +62,10 @@ public class JwtUtils {
                 .getBody();
     }
 
-    public boolean validateToken(String token, String username) {
+    public boolean validateToken(String token, String identifier) {
         final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+        final String extractedNationalId = extractClaim(token, claims -> claims.get("nationalId", String.class));
+        return ((extractedUsername.equals(identifier) || identifier.equals(extractedNationalId)) && !isTokenExpired(token));
     }
 
     private boolean isTokenExpired(String token) {
