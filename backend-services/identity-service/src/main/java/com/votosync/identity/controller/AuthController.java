@@ -98,7 +98,7 @@ public class AuthController {
     }
 
     @GetMapping("/validate-token")
-    public ResponseEntity<?> validateToken(@RequestParam String token, @RequestParam String username) {
+    public ResponseEntity<?> validateToken(@RequestParam("token") String token, @RequestParam("username") String username) {
         boolean isValid = jwtUtils.validateToken(token, username);
         if (isValid) {
             Map<String, Object> claims = new HashMap<>();
@@ -111,7 +111,7 @@ public class AuthController {
     }
 
     @PostMapping("/mark-voted")
-    public ResponseEntity<?> markVoted(@RequestParam String nationalId) {
+    public ResponseEntity<?> markVoted(@RequestParam("nationalId") String nationalId) {
         log.info("Marking citizen with national ID as voted: {}", nationalId);
         Optional<User> userOpt = userRepository.findByNationalId(nationalId);
         if (userOpt.isPresent()) {

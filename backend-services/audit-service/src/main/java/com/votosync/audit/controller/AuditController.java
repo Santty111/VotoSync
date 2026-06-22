@@ -31,13 +31,13 @@ public class AuditController {
     }
 
     @GetMapping("/ledger/election/{electionId}")
-    public List<AuditVote> getElectionLedger(@PathVariable Long electionId) {
+    public List<AuditVote> getElectionLedger(@PathVariable("electionId") Long electionId) {
         log.info("Fetching public audit ledger for election ID: {}", electionId);
         return auditVoteRepository.findByElectionId(electionId);
     }
 
     @GetMapping("/results/{electionId}")
-    public List<VoteResultDto> getResults(@PathVariable Long electionId) {
+    public List<VoteResultDto> getResults(@PathVariable("electionId") Long electionId) {
         log.info("Fetching real-time results for election ID: {}", electionId);
         return auditVoteRepository.countVotesByCandidate(electionId);
     }

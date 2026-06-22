@@ -42,7 +42,7 @@ public class ElectionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Election> getElectionById(@PathVariable Long id) {
+    public ResponseEntity<Election> getElectionById(@PathVariable("id") Long id) {
         log.info("Fetching election details for ID: {}", id);
         return electionRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -57,7 +57,7 @@ public class ElectionController {
     }
 
     @PostMapping("/{id}/candidates")
-    public ResponseEntity<Candidate> addCandidate(@PathVariable Long id, @RequestBody Candidate candidate) {
+    public ResponseEntity<Candidate> addCandidate(@PathVariable("id") Long id, @RequestBody Candidate candidate) {
         log.info("Adding candidate '{}' to election ID: {}", candidate.getName(), id);
         Optional<Election> electionOpt = electionRepository.findById(id);
         if (electionOpt.isEmpty()) {
@@ -70,7 +70,7 @@ public class ElectionController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Election> updateStatus(@PathVariable Long id, @RequestParam String status) {
+    public ResponseEntity<Election> updateStatus(@PathVariable("id") Long id, @RequestParam("status") String status) {
         log.info("Updating status of election ID: {} to {}", id, status);
         Optional<Election> electionOpt = electionRepository.findById(id);
         if (electionOpt.isEmpty()) {
