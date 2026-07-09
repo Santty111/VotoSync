@@ -2,11 +2,11 @@
   "name": "VotoSync",
   "image": "mcr.microsoft.com/devcontainers/java:17-bullseye",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+    "ghcr.io/devcontainers/features/docker-in-docker": {
       "version": "latest",
-      "enableNonRootDocker": "true"
+      "enableNonRootDocker": true
     },
-    "ghcr.io/devcontainers/features/node:1": {
+    "ghcr.io/devcontainers/features/node": {
       "version": "20"
     }
   },
