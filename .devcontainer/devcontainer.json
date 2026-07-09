@@ -1,0 +1,58 @@
+{
+  "name": "VotoSync",
+  "image": "mcr.microsoft.com/devcontainers/java:17-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "ms-azuretools.vscode-docker",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  },
+  "forwardPorts": [3000, 8081, 8082, 8083, 8084, 15672, 5432, 5433],
+  "portsAttributes": {
+    "3000": {
+      "label": "React Frontend (Nginx Proxy)",
+      "onAutoForward": "openBrowser"
+    },
+    "8081": {
+      "label": "Identity Service",
+      "onAutoForward": "silent"
+    },
+    "8082": {
+      "label": "Election Service",
+      "onAutoForward": "silent"
+    },
+    "8083": {
+      "label": "Vote Service",
+      "onAutoForward": "silent"
+    },
+    "8084": {
+      "label": "Audit Service",
+      "onAutoForward": "silent"
+    },
+    "15672": {
+      "label": "RabbitMQ Management Console",
+      "onAutoForward": "silent"
+    },
+    "5432": {
+      "label": "PostgreSQL Master Database",
+      "onAutoForward": "silent"
+    },
+    "5433": {
+      "label": "PostgreSQL Slave Database (Replica)",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "chmod +x start-local.sh && echo 'Configuración de devcontainer completa. Para iniciar la aplicación, ejecuta: ./start-local.sh'"
+}
