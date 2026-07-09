@@ -1,6 +1,6 @@
 {
   "name": "VotoSync",
-  "image": "mcr.microsoft.com/devcontainers/java:17-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/java:17-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker": {
       "version": "latest",
